@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSettingsStore } from '../stores/settingsStore'
 import { useProviderStore } from '../stores/providerStore'
-import { useUIStore } from '../stores/uiStore'
 import { useTranslation } from '../i18n'
 import { Modal } from '../components/shared/Modal'
 import { Input } from '../components/shared/Input'
@@ -17,22 +16,10 @@ type SettingsTab = 'providers' | 'permissions' | 'general' | 'adapters'
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('providers')
-  const setActiveView = useUIStore((s) => s.setActiveView)
   const t = useTranslation()
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--color-surface)]">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[var(--color-border)]">
-        <button
-          onClick={() => setActiveView('code')}
-          className="p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] transition-colors text-[var(--color-text-secondary)]"
-        >
-          <span className="material-symbols-outlined text-[20px]">arrow_back</span>
-        </button>
-        <h1 className="text-lg font-bold text-[var(--color-text-primary)]">{t('settings.title')}</h1>
-      </div>
-
       <div className="flex-1 flex overflow-hidden">
         {/* Tab navigation */}
         <div className="w-48 border-r border-[var(--color-border)] py-3 flex-shrink-0">

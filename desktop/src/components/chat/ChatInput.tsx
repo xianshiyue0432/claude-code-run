@@ -9,6 +9,7 @@ import { ModelSelector } from '../controls/ModelSelector'
 import type { AttachmentRef } from '../../types/chat'
 import { AttachmentGallery } from './AttachmentGallery'
 import { ProjectContextChip } from '../shared/ProjectContextChip'
+import { DirectoryPicker } from '../shared/DirectoryPicker'
 import { FileSearchMenu, type FileSearchMenuHandle } from './FileSearchMenu'
 import {
   FALLBACK_SLASH_COMMANDS,
@@ -49,9 +50,10 @@ export function ChatInput() {
   const sessionState = useChatStore((s) => activeTabId ? s.sessions[activeTabId] : undefined)
   const chatState = sessionState?.chatState ?? 'idle'
   const slashCommands = sessionState?.slashCommands ?? []
-  const activeSessionId = useSessionStore((state) => state.activeSessionId)
-  const activeSession = useSessionStore((state) => state.sessions.find((session) => session.id === state.activeSessionId) ?? null)
+  const activeSession = useSessionStore((state) => activeTabId ? state.sessions.find((session) => session.id === activeTabId) ?? null : null)
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null)
+  const messages = useChatStore((s) => activeTabId ? s.sessions[activeTabId]?.messages ?? [] : [])
+  const hasMessages = messages.length > 0
 
   const isActive = chatState !== 'idle'
   const isWorkspaceMissing = activeSession?.workDirExists === false
@@ -62,12 +64,12 @@ export function ChatInput() {
   }, [isActive])
 
   useEffect(() => {
-    if (!activeSessionId) {
+    if (!activeTabId) {
       setGitInfo(null)
       return
     }
-    sessionsApi.getGitInfo(activeSessionId).then(setGitInfo).catch(() => setGitInfo(null))
-  }, [activeSessionId])
+    sessionsApi.getGitInfo(activeTabId).then(setGitInfo).catch(() => setGitInfo(null))
+  }, [activeTabId])
 
   useEffect(() => {
     const el = textareaRef.current
@@ -518,11 +520,30 @@ export function ChatInput() {
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFileSelect} />
 
         <div className="mt-3 px-1">
-          <ProjectContextChip
-            workDir={gitInfo?.workDir || activeSession?.workDir}
-            repoName={gitInfo?.repoName || null}
-            branch={gitInfo?.branch || null}
-          />
+          {hasMessages ? (
+            <ProjectContextChip
+              workDir={gitInfo?.workDir || activeSession?.workDir}
+              repoName={gitInfo?.repoName || null}
+              branch={gitInfo?.branch || null}
+            />
+          ) : (
+            <DirectoryPicker
+              value={gitInfo?.workDir || activeSession?.workDir || ''}
+              onChange={async (newWorkDir) => {
+                if (!activeTabId) return
+                // Recreate session with new workDir
+                const { deleteSession, createSession } = useSessionStore.getState()
+                const { closeTab, openTab } = useTabStore.getState()
+                const { disconnectSession, connectToSession } = useChatStore.getState()
+                disconnectSession(activeTabId)
+                closeTab(activeTabId)
+                await deleteSession(activeTabId)
+                const newId = await createSession(newWorkDir)
+                openTab(newId, t('sidebar.newSession'))
+                connectToSession(newId)
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -38,7 +38,7 @@ describe('Content-only pages render without errors', () => {
 
   it('ActiveSession renders with chat components', () => {
     const SESSION_ID = 'test-active-session'
-    useTabStore.setState({ tabs: [{ sessionId: SESSION_ID, title: 'Test', status: 'idle' }], activeTabId: SESSION_ID })
+    useTabStore.setState({ tabs: [{ sessionId: SESSION_ID, title: 'Test', type: 'session' as const, status: 'idle' }], activeTabId: SESSION_ID })
     useChatStore.setState({
       sessions: {
         [SESSION_ID]: {
@@ -71,7 +71,7 @@ describe('Content-only pages render without errors', () => {
   })
 
   it('ActiveSession shows a single primary action button while a turn is active', () => {
-    useTabStore.setState({ activeTabId: 'active-tab', tabs: [{ sessionId: 'active-tab', title: 'Test', status: 'idle' }] })
+    useTabStore.setState({ activeTabId: 'active-tab', tabs: [{ sessionId: 'active-tab', title: 'Test', type: 'session' as const, status: 'idle' }] })
     useChatStore.setState({
       sessions: {
         'active-tab': {

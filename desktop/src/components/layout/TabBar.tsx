@@ -53,6 +53,13 @@ export function TabBar() {
   }
 
   const handleClose = (sessionId: string) => {
+    // Special tabs can always be closed directly
+    const tab = tabs.find((t) => t.sessionId === sessionId)
+    if (tab && tab.type !== 'session') {
+      closeTab(sessionId)
+      return
+    }
+
     const sessionState = useChatStore.getState().sessions[sessionId]
     const isRunning = sessionState && sessionState.chatState !== 'idle'
 
@@ -198,11 +205,17 @@ function TabItem({ tab, isActive, onClick, onClose, onContextMenu }: {
       `}
       style={{ width: TAB_WIDTH, maxWidth: TAB_WIDTH }}
     >
-      {tab.status === 'running' && (
+      {tab.type === 'session' && tab.status === 'running' && (
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)] animate-pulse flex-shrink-0" />
       )}
-      {tab.status === 'error' && (
+      {tab.type === 'session' && tab.status === 'error' && (
         <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-error)] flex-shrink-0" />
+      )}
+      {tab.type === 'settings' && (
+        <span className="material-symbols-outlined text-[14px] flex-shrink-0 text-[var(--color-text-tertiary)]">settings</span>
+      )}
+      {tab.type === 'scheduled' && (
+        <span className="material-symbols-outlined text-[14px] flex-shrink-0 text-[var(--color-text-tertiary)]">schedule</span>
       )}
 
       <span className={`flex-1 truncate text-xs ${isActive ? 'text-[var(--color-text-primary)] font-medium' : 'text-[var(--color-text-secondary)]'}`}>

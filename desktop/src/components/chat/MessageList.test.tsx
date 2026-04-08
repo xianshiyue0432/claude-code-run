@@ -30,7 +30,7 @@ function makeSessionState(overrides: Partial<PerSessionState> = {}): PerSessionS
 
 describe('MessageList nested tool calls', () => {
   beforeEach(() => {
-    useTabStore.setState({ activeTabId: ACTIVE_TAB, tabs: [{ sessionId: ACTIVE_TAB, title: 'Test', status: 'idle' }] })
+    useTabStore.setState({ activeTabId: ACTIVE_TAB, tabs: [{ sessionId: ACTIVE_TAB, title: 'Test', type: 'session' as const, status: 'idle' }] })
     useChatStore.setState({ sessions: { [ACTIVE_TAB]: makeSessionState() } })
   })
 

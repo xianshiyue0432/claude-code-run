@@ -8,7 +8,7 @@ import { useTabStore } from '../../stores/tabStore'
 
 describe('chat blocks', () => {
   beforeEach(() => {
-    useTabStore.setState({ activeTabId: 'active-tab', tabs: [{ sessionId: 'active-tab', title: 'Test', status: 'idle' }] })
+    useTabStore.setState({ activeTabId: 'active-tab', tabs: [{ sessionId: 'active-tab', title: 'Test', type: 'session' as const, status: 'idle' }] })
     useChatStore.setState({ sessions: {} })
   })
 

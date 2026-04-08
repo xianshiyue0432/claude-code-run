@@ -3,14 +3,20 @@ import { sessionsApi } from '../api/sessions'
 
 const TAB_STORAGE_KEY = 'cc-haha-open-tabs'
 
+export const SETTINGS_TAB_ID = '__settings__'
+export const SCHEDULED_TAB_ID = '__scheduled__'
+
+export type TabType = 'session' | 'settings' | 'scheduled'
+
 export type Tab = {
   sessionId: string
   title: string
+  type: TabType
   status: 'idle' | 'running' | 'error'
 }
 
 type TabPersistence = {
-  openTabs: Array<{ sessionId: string; title: string }>
+  openTabs: Array<{ sessionId: string; title: string; type?: TabType }>
   activeTabId: string | null
 }
 
@@ -18,7 +24,7 @@ type TabStore = {
   tabs: Tab[]
   activeTabId: string | null
 
-  openTab: (sessionId: string, title: string) => void
+  openTab: (sessionId: string, title: string, type?: TabType) => void
   closeTab: (sessionId: string) => void
   setActiveTab: (sessionId: string) => void
   updateTabTitle: (sessionId: string, title: string) => void
@@ -32,14 +38,14 @@ export const useTabStore = create<TabStore>((set, get) => ({
   tabs: [],
   activeTabId: null,
 
-  openTab: (sessionId, title) => {
+  openTab: (sessionId, title, type = 'session') => {
     const { tabs } = get()
     const existing = tabs.find((t) => t.sessionId === sessionId)
     if (existing) {
       set({ activeTabId: sessionId })
     } else {
       set({
-        tabs: [...tabs, { sessionId, title, status: 'idle' }],
+        tabs: [...tabs, { sessionId, title, type, status: 'idle' }],
         activeTabId: sessionId,
       })
     }
@@ -89,7 +95,7 @@ export const useTabStore = create<TabStore>((set, get) => ({
   saveTabs: () => {
     const { tabs, activeTabId } = get()
     const data: TabPersistence = {
-      openTabs: tabs.map((t) => ({ sessionId: t.sessionId, title: t.title })),
+      openTabs: tabs.map((t) => ({ sessionId: t.sessionId, title: t.title, type: t.type })),
       activeTabId,
     }
     try {
@@ -109,12 +115,23 @@ export const useTabStore = create<TabStore>((set, get) => ({
       const existingIds = new Set(sessions.map((s) => s.id))
 
       const validTabs: Tab[] = data.openTabs
-        .filter((t) => existingIds.has(t.sessionId))
-        .map((t) => ({
-          sessionId: t.sessionId,
-          title: sessions.find((s) => s.id === t.sessionId)?.title || t.title,
-          status: 'idle' as const,
-        }))
+        .filter((t) => {
+          // Special tabs are always valid
+          if (t.type === 'settings' || t.type === 'scheduled') return true
+          // Session tabs must exist on server
+          return existingIds.has(t.sessionId)
+        })
+        .map((t) => {
+          if (t.type === 'settings' || t.type === 'scheduled') {
+            return { sessionId: t.sessionId, title: t.title, type: t.type, status: 'idle' as const }
+          }
+          return {
+            sessionId: t.sessionId,
+            title: sessions.find((s) => s.id === t.sessionId)?.title || t.title,
+            type: 'session' as const,
+            status: 'idle' as const,
+          }
+        })
 
       if (validTabs.length === 0) return
 

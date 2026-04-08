@@ -6,6 +6,7 @@ import { useSettingsStore } from '../../stores/settingsStore'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { initializeDesktopServerUrl } from '../../lib/desktopRuntime'
 import { TabBar } from './TabBar'
+import { StatusBar } from './StatusBar'
 import { useTabStore } from '../../stores/tabStore'
 import { useChatStore } from '../../stores/chatStore'
 
@@ -103,6 +104,7 @@ export function AppShell() {
       <main id="content-area" className={`flex-1 flex flex-col overflow-hidden relative ${isTauri ? 'pt-[38px]' : ''}`}>
         <TabBar />
         <ContentRouter />
+        <StatusBar />
       </main>
       <ToastContainer />
     </div>

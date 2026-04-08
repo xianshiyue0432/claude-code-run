@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useSessionStore } from '../../stores/sessionStore'
-import { useUIStore } from '../../stores/uiStore'
 import { useTranslation } from '../../i18n'
 import { ProjectFilter } from './ProjectFilter'
 import type { SessionListItem } from '../../types/session'
-import { useTabStore } from '../../stores/tabStore'
+import { useTabStore, SETTINGS_TAB_ID, SCHEDULED_TAB_ID } from '../../stores/tabStore'
 import { useChatStore } from '../../stores/chatStore'
 
 const isTauri = typeof window !== 'undefined' && ('__TAURI_INTERNALS__' in window || '__TAURI__' in window)
@@ -16,15 +15,13 @@ const TIME_GROUP_ORDER: TimeGroup[] = ['today', 'yesterday', 'last7days', 'last3
 export function Sidebar() {
   const {
     sessions,
-    activeSessionId,
     selectedProjects,
     error,
-    setActiveSession,
     fetchSessions,
     deleteSession,
     renameSession,
   } = useSessionStore()
-  const { activeView, setActiveView } = useUIStore()
+  const activeTabId = useTabStore((s) => s.activeTabId)
   const [searchQuery, setSearchQuery] = useState('')
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -132,15 +129,29 @@ export function Sidebar() {
       {/* Navigation */}
       <div className="px-3 pb-3 flex flex-col gap-0.5">
         <NavItem
-          active={activeView === 'code' && !activeSessionId}
-          onClick={() => { setActiveView('code'); setActiveSession(null) }}
+          active={false}
+          onClick={async () => {
+            try {
+              // Use current active session's workDir as default for new session
+              const currentTabId = useTabStore.getState().activeTabId
+              const currentSession = currentTabId
+                ? useSessionStore.getState().sessions.find((s) => s.id === currentTabId)
+                : null
+              const workDir = currentSession?.workDir || undefined
+              const sessionId = await useSessionStore.getState().createSession(workDir)
+              useTabStore.getState().openTab(sessionId, t('sidebar.newSession'))
+              useChatStore.getState().connectToSession(sessionId)
+            } catch {
+              // Session creation failed — no tab opened
+            }
+          }}
           icon={<PlusIcon />}
         >
           {t('sidebar.newSession')}
         </NavItem>
         <NavItem
-          active={activeView === 'scheduled'}
-          onClick={() => setActiveView('scheduled')}
+          active={activeTabId === SCHEDULED_TAB_ID}
+          onClick={() => useTabStore.getState().openTab(SCHEDULED_TAB_ID, t('sidebar.scheduled'), 'scheduled')}
           icon={<ClockIcon />}
         >
           {t('sidebar.scheduled')}
@@ -208,22 +219,21 @@ export function Sidebar() {
                   ) : (
                     <button
                       onClick={() => {
-                        setActiveView('code')
                         useTabStore.getState().openTab(session.id, session.title)
                         useChatStore.getState().connectToSession(session.id)
                       }}
                       onContextMenu={(e) => handleContextMenu(e, session.id)}
                       className={`
                         w-full flex items-center gap-2 pl-4 pr-3 py-1.5 text-sm text-left rounded-[var(--radius-md)] transition-colors duration-200 group
-                        ${session.id === activeSessionId
+                        ${session.id === activeTabId
                           ? 'bg-[var(--color-surface-selected)] text-[var(--color-text-primary)]'
                           : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
                         }
                       `}
                     >
                       <span className="w-1 h-1 rounded-full flex-shrink-0" style={{
-                        backgroundColor: session.id === activeSessionId ? 'var(--color-brand)' : 'var(--color-text-tertiary)',
-                        opacity: session.id === activeSessionId ? 1 : 0.5,
+                        backgroundColor: session.id === activeTabId ? 'var(--color-brand)' : 'var(--color-text-tertiary)',
+                        opacity: session.id === activeTabId ? 1 : 0.5,
                       }} />
                       <span className="truncate flex-1">{session.title || 'Untitled'}</span>
                       {!session.workDirExists && (
@@ -249,8 +259,8 @@ export function Sidebar() {
       {/* Settings button at bottom */}
       <div className="p-3 border-t border-[var(--color-border)]">
         <NavItem
-          active={activeView === 'settings'}
-          onClick={() => setActiveView('settings')}
+          active={activeTabId === SETTINGS_TAB_ID}
+          onClick={() => useTabStore.getState().openTab(SETTINGS_TAB_ID, t('sidebar.settings'), 'settings')}
           icon={<span className="material-symbols-outlined text-[18px]">settings</span>}
         >
           {t('sidebar.settings')}
