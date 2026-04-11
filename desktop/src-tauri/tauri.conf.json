@@ -44,18 +44,9 @@
     "targets": "all",
     "createUpdaterArtifacts": true,
     "externalBin": [
-      "binaries/claude-server",
-      "binaries/claude-cli"
+      "binaries/claude-sidecar"
     ],
-    "resources": {
-      "../../src/": "app/src/",
-      "../../node_modules/": "app/node_modules/",
-      "../../package.json": "app/package.json",
-      "../../tsconfig.json": "app/tsconfig.json",
-      "../../bunfig.toml": "app/bunfig.toml",
-      "../../preload.ts": "app/preload.ts",
-      "../../stubs/": "app/stubs/"
-    },
+    "resources": {},
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

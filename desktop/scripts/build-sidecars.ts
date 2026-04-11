@@ -12,23 +12,31 @@ const targetTriple =
 
 const bunTarget = mapTargetTripleToBun(targetTriple)
 
+// 编译前先扫一遍 src/ 把所有缺失的 ant-internal 模块在磁盘上 stub 出来。
+// 见 desktop/scripts/scan-missing-imports.ts。
+console.log('[build-sidecars] scanning for missing imports...')
+const scanProc = Bun.spawn(
+  ['bun', 'run', path.join(desktopRoot, 'scripts/scan-missing-imports.ts')],
+  { cwd: repoRoot, stdout: 'inherit', stderr: 'inherit' },
+)
+const scanExit = await scanProc.exited
+if (scanExit !== 0) {
+  throw new Error(`[build-sidecars] scan-missing-imports failed (exit ${scanExit})`)
+}
+
 await mkdir(binariesDir, { recursive: true })
 
+// 单一合并 sidecar：server / cli 共享一份 bun runtime + 共享依赖代码。
+// 调用方（Tauri lib.rs / conversationService）通过第一个 positional 参数
+// 选择 'server' 或 'cli' 模式，详见 desktop/sidecars/claude-sidecar.ts。
 await compileExecutable({
-  entrypoint: path.join(desktopRoot, 'sidecars/server-launcher.ts'),
-  outfileBase: path.join(binariesDir, `claude-server-${targetTriple}`),
-  productName: 'Claude Code Server',
+  entrypoint: path.join(desktopRoot, 'sidecars/claude-sidecar.ts'),
+  outfileBase: path.join(binariesDir, `claude-sidecar-${targetTriple}`),
+  productName: 'Claude Code Sidecar',
   bunTarget,
 })
 
-await compileExecutable({
-  entrypoint: path.join(desktopRoot, 'sidecars/cli-launcher.ts'),
-  outfileBase: path.join(binariesDir, `claude-cli-${targetTriple}`),
-  productName: 'Claude Code CLI',
-  bunTarget,
-})
-
-console.log(`[build-sidecars] Built desktop sidecars for ${targetTriple} (${bunTarget})`)
+console.log(`[build-sidecars] Built desktop sidecar for ${targetTriple} (${bunTarget})`)
 
 async function detectHostTriple() {
   const proc = Bun.spawn(['rustc', '-vV'], {
@@ -93,9 +101,41 @@ async function compileExecutable({
 }) {
   const result = await Bun.build({
     entrypoints: [entrypoint],
-    minify: false,
+    // minify whitespace + identifiers + dead-code 大概能省 5-15% 的二进制大小，
+    // 代价是 stack trace 里的函数名变成短名 —— 终端用户场景可接受。
+    minify: { whitespace: true, identifiers: true, syntax: true },
     sourcemap: 'none',
     target: 'bun',
+    // 可选 npm 包：开 telemetry / 用 sharp 图像 / 用 Bedrock/Vertex 等
+    // 替代 provider 时才需要，全部不在顶层 package.json 里。标 external
+    // 让 bun build 跳过解析；运行时 import 在没装时自然失败，由 try/catch
+    // 或 feature() gate 兜底。
+    external: [
+      // OpenTelemetry exporters（开 OTEL_* env 时才加载）
+      '@opentelemetry/exporter-trace-otlp-grpc',
+      '@opentelemetry/exporter-trace-otlp-http',
+      '@opentelemetry/exporter-trace-otlp-proto',
+      '@opentelemetry/exporter-logs-otlp-grpc',
+      '@opentelemetry/exporter-logs-otlp-http',
+      '@opentelemetry/exporter-logs-otlp-proto',
+      '@opentelemetry/exporter-metrics-otlp-grpc',
+      '@opentelemetry/exporter-metrics-otlp-http',
+      '@opentelemetry/exporter-metrics-otlp-proto',
+      '@opentelemetry/exporter-prometheus',
+      // 替代 LLM provider —— 默认不用，用户自装
+      '@aws-sdk/client-bedrock',
+      '@aws-sdk/client-sts',
+      '@anthropic-ai/bedrock-sdk',
+      '@anthropic-ai/foundry-sdk',
+      '@anthropic-ai/vertex-sdk',
+      '@azure/identity',
+      // ant-internal / 可选工具
+      '@anthropic-ai/mcpb',
+      'fflate',
+      'turndown',
+      'sharp',
+      'react-devtools-core',
+    ],
     compile: {
       target: bunTarget,
       outfile: outfileBase,

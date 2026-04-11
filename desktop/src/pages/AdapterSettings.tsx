@@ -9,8 +9,8 @@ export function AdapterSettings() {
   const t = useTranslation()
   const { config, isLoading, fetchConfig, updateConfig, generatePairingCode, removePairedUser } = useAdapterStore()
 
-  // Server
-  const [serverUrl, setServerUrl] = useState('')
+  // Server —— serverUrl 不再暴露在 UI 里（见下方 Server URL 注释），
+  // 桌面端用 Tauri env var 注入动态端口。
   const [defaultProjectDir, setDefaultProjectDir] = useState('')
 
   // Telegram
@@ -39,7 +39,6 @@ export function AdapterSettings() {
 
   // Sync form state when config is loaded
   useEffect(() => {
-    setServerUrl(config.serverUrl ?? '')
     setDefaultProjectDir(config.defaultProjectDir ?? '')
     setTgBotToken(config.telegram?.botToken ?? '')
     setTgAllowedUsers(config.telegram?.allowedUsers?.join(', ') ?? '')
@@ -58,7 +57,6 @@ export function AdapterSettings() {
     try {
       const patch: Record<string, unknown> = {}
 
-      if (serverUrl) patch.serverUrl = serverUrl
       if (defaultProjectDir) patch.defaultProjectDir = defaultProjectDir
 
       const tgUsers = tgAllowedUsers
@@ -212,13 +210,11 @@ export function AdapterSettings() {
         </div>
       </section>
 
-      {/* Server URL */}
-      <Input
-        label={t('settings.adapters.serverUrl')}
-        value={serverUrl}
-        onChange={(e) => setServerUrl(e.target.value)}
-        placeholder={t('settings.adapters.serverUrlPlaceholder')}
-      />
+      {/* Server URL —— 之前是个手填字段，但桌面端 Tauri 启动 adapter sidecar
+          时已经把 server 的动态端口通过 ADAPTER_SERVER_URL env var 注进去了，
+          loadConfig() 里 env 优先级高于这里的 file value，所以这个字段在桌面
+          运行时完全不会被读到。用户也根本不知道该填什么端口（每次启动随机）。
+          Standalone 模式（直接 bun run adapters/...）保留 file 字段兜底就够了。 */}
 
       {/* Default Project */}
       <div className="flex flex-col gap-1">

@@ -2,6 +2,27 @@ import { create } from 'zustand'
 import { adaptersApi } from '../api/adapters'
 import type { AdapterFileConfig } from '../types/adapter'
 
+/**
+ * Tauri command 触发器：让主进程 kill + respawn adapter sidecar，
+ * 让 ~/.claude/adapters.json 里的最新凭据被新进程读到，建立飞书 / Telegram
+ * 的 WebSocket 连接。
+ *
+ * 在非 Tauri 环境（纯浏览器调试 / 单元测试）这会安静失败 —— 那种场景下
+ * 本来也没有 sidecar 可重启。
+ */
+async function notifyTauriRestartAdapters(): Promise<void> {
+  try {
+    // 用 dynamic import 避开 SSR / non-tauri 测试环境的硬依赖
+    const { invoke } = await import('@tauri-apps/api/core')
+    await invoke('restart_adapters_sidecar')
+  } catch (err) {
+    // 不阻塞保存流程 —— 配置文件已经写入，下次启动 App 也会生效
+    if (typeof console !== 'undefined') {
+      console.warn('[adapterStore] restart_adapters_sidecar failed:', err)
+    }
+  }
+}
+
 const SAFE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
 const CODE_LENGTH = 6
 const CODE_TTL_MS = 60 * 60 * 1000 // 60 minutes
@@ -49,6 +70,11 @@ export const useAdapterStore = create<AdapterStore>((set, get) => ({
   updateConfig: async (patch) => {
     const config = await adaptersApi.updateConfig(patch)
     set({ config })
+    // 配置文件已写入磁盘，让 Tauri 主进程 kill + respawn adapter sidecar，
+    // 触发飞书 / Telegram WebSocket 用新凭据重连。pairing code / paired users
+    // 这种轻量更新也会触发重启 —— 这是个有意为之的简化：保证"任何配置变更
+    // 都立刻生效"，比起精细判断哪些字段值得重启更可靠。
+    void notifyTauriRestartAdapters()
   },
 
   generatePairingCode: async () => {

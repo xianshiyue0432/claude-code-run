@@ -12,7 +12,7 @@
       "allow": [
         {
           "args": true,
-          "name": "binaries/claude-server",
+          "name": "binaries/claude-sidecar",
           "sidecar": true
         }
       ]
@@ -22,7 +22,17 @@
       "allow": [
         {
           "args": true,
-          "name": "binaries/claude-server",
+          "name": "binaries/claude-sidecar",
+          "sidecar": true
+        }
+      ]
+    },
+    {
+      "identifier": "shell:allow-kill",
+      "allow": [
+        {
+          "args": true,
+          "name": "binaries/claude-sidecar",
           "sidecar": true
         }
       ]

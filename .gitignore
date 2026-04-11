@@ -8,6 +8,11 @@ node_modules
 .runtime/
 extracted-natives/
 
+# Adapter attachment cache (created at runtime by AttachmentStore when
+# running adapter tests or the feishu/telegram adapters locally)
+.lark-attachments/
+.tg-attachments/
+
 # Playwright MCP snapshots & logs
 .playwright-mcp/
 
