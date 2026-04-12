@@ -226,6 +226,14 @@ export const zh: Record<TranslationKey, string> = {
   'settings.skills.source.mcp': 'MCP',
   'settings.skills.source.bundled': '内置',
 
+  // Settings > About
+  'settings.tab.about': '关于',
+  'settings.about.version': '版本',
+  'settings.about.repo': 'GitHub 仓库',
+  'settings.about.starHint': '如果这个项目对你有帮助，欢迎给个 Star',
+  'settings.about.author': '作者',
+  'settings.about.socialMedia': '社交媒体',
+
   // Settings > General
   'settings.general.languageTitle': '语言',
   'settings.general.languageDescription': '选择应用程序的显示语言。',

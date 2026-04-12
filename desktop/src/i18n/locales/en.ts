@@ -224,6 +224,14 @@ export const en = {
   'settings.skills.source.mcp': 'MCP',
   'settings.skills.source.bundled': 'Built-in',
 
+  // Settings > About
+  'settings.tab.about': 'About',
+  'settings.about.version': 'Version',
+  'settings.about.repo': 'GitHub Repository',
+  'settings.about.starHint': 'If this project helps you, consider giving it a Star',
+  'settings.about.author': 'Author',
+  'settings.about.socialMedia': 'Social Media',
+
   // Settings > General
   'settings.general.languageTitle': 'Language',
   'settings.general.languageDescription': 'Choose the display language for the application.',
