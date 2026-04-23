@@ -34,7 +34,7 @@ import { CellWidth, CharPool, cellAt, createScreen, HyperlinkPool, isEmptyCellAt
 import { applySearchHighlight } from './searchHighlight.js';
 import { applySelectionOverlay, captureScrolledRows, clearSelection, createSelectionState, extendSelection, type FocusMove, findPlainTextUrlAt, getSelectedText, hasSelection, moveFocus, type SelectionState, selectLineAt, selectWordAt, shiftAnchor, shiftSelection, shiftSelectionForFollow, startSelection, updateSelection } from './selection.js';
 import { SYNC_OUTPUT_SUPPORTED, supportsExtendedKeys, type Terminal, writeDiffToTerminal } from './terminal.js';
-import { CURSOR_HOME, cursorMove, cursorPosition, DISABLE_KITTY_KEYBOARD, DISABLE_MODIFY_OTHER_KEYS, ENABLE_KITTY_KEYBOARD, ENABLE_MODIFY_OTHER_KEYS, ERASE_SCREEN } from './termio/csi.js';
+import { CURSOR_HOME, cursorMove, cursorPosition, DISABLE_KITTY_KEYBOARD, DISABLE_MODIFY_OTHER_KEYS, ENABLE_KITTY_KEYBOARD, ENABLE_MODIFY_OTHER_KEYS, ERASE_SCROLLBACK, ERASE_SCREEN } from './termio/csi.js';
 import { DBP, DFE, DISABLE_MOUSE_TRACKING, ENABLE_MOUSE_TRACKING, ENTER_ALT_SCREEN, EXIT_ALT_SCREEN, SHOW_CURSOR } from './termio/dec.js';
 import { CLEAR_ITERM2_PROGRESS, CLEAR_TAB_STATUS, setClipboard, supportsTabStatus, wrapForMultiplexer } from './termio/osc.js';
 import { TerminalWriteProvider } from './useTerminalNotification.js';
@@ -335,6 +335,11 @@ export default class Ink {
       this.needsEraseBeforePaint = true;
     }
 
+    // Main screen: clear terminal on resize to prevent ghosting
+    if (!this.altScreenActive && !this.isPaused && this.options.stdout.isTTY) {
+      this.options.stdout.write(ERASE_SCREEN + ERASE_SCROLLBACK + CURSOR_HOME);
+      this.log.reset();
+    }
     // Re-render the React tree with updated props so the context value changes.
     // React's commit phase will call onComputeLayout() to recalculate yoga layout
     // with the new dimensions, then call onRender() to render the updated frame.
